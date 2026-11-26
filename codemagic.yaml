@@ -9,6 +9,21 @@ workflows:
       - name: Generate Android platform project
         script: |
           flutter create --platforms=android --org com.tradepulse.app .
+      - name: Set Android compile SDK to 36
+        script: |
+          python3 - <<'PYCODE'
+          from pathlib import Path
+          import re
+          gradle_files = [Path('android/app/build.gradle'), Path('android/app/build.gradle.kts')]
+          for path in gradle_files:
+              if path.exists():
+                  content = path.read_text()
+                  content = re.sub(r'compileSdk\s*=\s*flutter\.compileSdkVersion', 'compileSdk = 36', content)
+                  content = re.sub(r'compileSdkVersion\s+flutter\.compileSdkVersion', 'compileSdkVersion 36', content)
+                  content = re.sub(r'compileSdk\s*=\s*\d+', 'compileSdk = 36', content)
+                  content = re.sub(r'compileSdkVersion\s+\d+', 'compileSdkVersion 36', content)
+                  path.write_text(content)
+          PYCODE
       - name: Resolve packages
         script: flutter pub get
       - name: Build release APK
