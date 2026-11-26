@@ -1,0 +1,21 @@
+workflows:
+  tradepulse-android-release:
+    name: TradePulse OI - Android APK
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    environment:
+      flutter: stable
+    scripts:
+      - name: Generate Android platform project
+        script: |
+          flutter create --platforms=android --org com.tradepulse.app .
+      - name: Resolve packages
+        script: flutter pub get
+      - name: Build release APK
+        script: flutter build apk --release
+    artifacts:
+      - build/app/outputs/flutter-apk/app-release.apk
+      - build/**/outputs/**/mapping.txt
+    publishing:
+      email:
+        recipients: []
