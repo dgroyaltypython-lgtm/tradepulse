@@ -76,7 +76,7 @@ class _HomeShellState extends State<HomeShell> {
       for(final r in rows.skip(2)) { if(r.length<22)continue; final strike=numVal(r[11]); if(strike<=0)continue;
         parsed.add(OptionRow(strike:strike,ceOi:numVal(r[1]),ceOiChange:numVal(r[2]),ceVolume:numVal(r[3]),ceIv:numVal(r[4]),ceLtp:numVal(r[5]),ceChange:numVal(r[6]),peChange:numVal(r[16]),peLtp:numVal(r[17]),peIv:numVal(r[18]),peVolume:numVal(r[19]),peOiChange:numVal(r[20]),peOi:numVal(r[21]),)); }
       if(parsed.isEmpty)throw Exception('No valid strike rows found. Check that this is an option-chain CSV.');
-      setState(()=>{options=parsed;snapshots.add(parsed);importedName=f.files.single.name;});
+      setState(() { options = parsed; snapshots.add(parsed); importedName = f.files.single.name; });
       if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('Imported ${parsed.length} strike rows successfully')));
     } catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('Import failed: $e')));}
   }
@@ -92,7 +92,137 @@ class _HomeShellState extends State<HomeShell> {
 class PageHeader extends StatelessWidget {final String title,subtitle; final Widget? trailing; const PageHeader(this.title,this.subtitle,{this.trailing,super.key}); @override Widget build(BuildContext c)=>Padding(padding:const EdgeInsets.fromLTRB(20,18,20,14),child:Row(children:[Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text(title,style:const TextStyle(fontSize:25,fontWeight:FontWeight.w800,color:ink)),const SizedBox(height:3),Text(subtitle,style:const TextStyle(color:muted,fontSize:12))])),if(trailing!=null)trailing!]));}
 class Surface extends StatelessWidget {final Widget child; final EdgeInsets padding; const Surface({required this.child,this.padding=const EdgeInsets.all(16),super.key}); @override Widget build(BuildContext c)=>Container(width:double.infinity,padding:padding,decoration:BoxDecoration(color:Colors.white,borderRadius:BorderRadius.circular(20),boxShadow:[BoxShadow(color:navy.withOpacity(.045),blurRadius:18,offset:const Offset(0,6))]),child:child);}
 class Metric extends StatelessWidget {final String label,value,caption;final Color color;final IconData icon;const Metric(this.label,this.value,this.caption,this.color,this.icon,{super.key});@override Widget build(BuildContext c)=>Surface(padding:const EdgeInsets.all(14),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Icon(icon,color:color,size:19),const SizedBox(height:12),Text(value,style:TextStyle(fontSize:19,fontWeight:FontWeight.w800,color:color)),Text(label,style:const TextStyle(fontWeight:FontWeight.w700,color:ink,fontSize:12)),Text(caption,style:const TextStyle(color:muted,fontSize:10))]));}
-class DashboardPage extends StatelessWidget {final List<Trade> trades;final double pnl;final VoidCallback onImport,onAdd,onAnalyze,onJournal;final List<OptionRow> options;final String importedName;const DashboardPage({required this.trades,required this.pnl,required this.onImport,required this.onAdd,required this.onAnalyze,required this.onJournal,required this.options,required this.importedName,super.key});@override Widget build(BuildContext c){final wins=trades.where((t)=>t.pnl>0).length;return ListView(padding:const EdgeInsets.only(bottom:20),children:[PageHeader('TradePulse','Your trading desk • Market intelligence',trailing:Container(padding:const EdgeInsets.all(10),decoration:BoxDecoration(color:navy,borderRadius:BorderRadius.circular(13)),child:const Icon(Icons.show_chart,color:teal))),Padding(padding:const EdgeInsets.symmetric(horizontal:16),child:Container(padding:const EdgeInsets.all(20),decoration:BoxDecoration(gradient:const LinearGradient(colors:[Color(0xFF101A32),Color(0xFF263B60)]),borderRadius:BorderRadius.circular(24)),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[const Text('TOTAL REALISED P&L',style:TextStyle(color:Color(0xFFB7C3D8),fontSize:11,letterSpacing:1.3)),const SizedBox(height:7),Text(money.format(pnl),style:TextStyle(color:pnl>=0?const Color(0xFF55D9B4):const Color(0xFFFF8791),fontSize:31,fontWeight:FontWeight.w800)),const SizedBox(height:15),Row(children:[_heroStat('${trades.length}','TRADES'),const SizedBox(width:25),_heroStat('${trades.isEmpty?0:(wins/trades.length*100).toStringAsFixed(0)}%','WIN RATE'),const Spacer(),const Icon(Icons.trending_up,color:teal,size:30)])])),const SizedBox(height:16),Padding(padding:const EdgeInsets.symmetric(horizontal:16),child:Row(children:[Expanded(child:Metric('Open records','${trades.where((t)=>t.status=='Open').length}','Active positions',teal,Icons.track_changes)),const SizedBox(width:10),Expanded(child:Metric('Winning trades','$wins','Profitable closed trades',green,Icons.emoji_events)),const SizedBox(width:10),Expanded(child:Metric('Option strikes','${options.length}','Latest CSV import',Colors.deepPurple,Icons.table_chart))])),const SizedBox(height:20),Padding(padding:const EdgeInsets.symmetric(horizontal:20),child:const Text('QUICK ACTIONS',style:TextStyle(fontWeight:FontWeight.w800,color:ink,letterSpacing:1))),const SizedBox(height:10),Padding(padding:const EdgeInsets.symmetric(horizontal:16),child:Row(children:[Expanded(child:_action('Import Option CSV',Icons.upload_file,onImport)),const SizedBox(width:10),Expanded(child:_action('Analyze OI',Icons.query_stats,onAnalyze)),const SizedBox(width:10),Expanded(child:_action('Add Trade',Icons.add_chart,onAdd))])),const SizedBox(height:17),Padding(padding:const EdgeInsets.symmetric(horizontal:16),child:Surface(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Row(children:[const Icon(Icons.auto_graph,color:teal),const SizedBox(width:8),const Expanded(child:Text('Latest market analysis',style:TextStyle(fontWeight:FontWeight.w800,color:ink))),TextButton(onPressed:onAnalyze,child:const Text('View all'))]),Text(importedName,style:const TextStyle(fontSize:11,color:muted)),const SizedBox(height:9),if(options.isEmpty)const Text('Import an option-chain CSV to view CE / PE positioning signals.',style:TextStyle(color:muted,fontSize:13))else Text('${options.length} strikes analysed • ${options.where((o)=>o.ceOiChange>0&&o.ceChange>0).length} CE fresh long signals • ${options.where((o)=>o.peOiChange>0&&o.peChange>0).length} PE fresh long signals',style:const TextStyle(color:ink,fontSize:13))]))),const SizedBox(height:16),Padding(padding:const EdgeInsets.symmetric(horizontal:16),child:Surface(child:Row(children:[const Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text('Trading journal',style:TextStyle(fontWeight:FontWeight.w800,color:ink)),Text('Review and manage your latest trades',style:TextStyle(color:muted,fontSize:11))])),TextButton(onPressed:onJournal,child:const Text('Open journal'))])))]);}}
+class DashboardPage extends StatelessWidget {
+  final List<Trade> trades;
+  final double pnl;
+  final VoidCallback onImport, onAdd, onAnalyze, onJournal;
+  final List<OptionRow> options;
+  final String importedName;
+
+  const DashboardPage({
+    required this.trades,
+    required this.pnl,
+    required this.onImport,
+    required this.onAdd,
+    required this.onAnalyze,
+    required this.onJournal,
+    required this.options,
+    required this.importedName,
+    super.key,
+  });
+
+  @override
+  Widget build(BuildContext c) {
+    final wins = trades.where((t) => t.pnl > 0).length;
+    final openTrades = trades.where((t) => t.status == 'Open').length;
+    final ceLongs = options.where((o) => o.ceOiChange > 0 && o.ceChange > 0).length;
+    final peLongs = options.where((o) => o.peOiChange > 0 && o.peChange > 0).length;
+
+    return ListView(
+      padding: const EdgeInsets.only(bottom: 20),
+      children: [
+        PageHeader(
+          'TradePulse',
+          'Your trading desk • Market intelligence',
+          trailing: Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(color: navy, borderRadius: BorderRadius.circular(13)),
+            child: const Icon(Icons.show_chart, color: teal),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(colors: [Color(0xFF101A32), Color(0xFF263B60)]),
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('TOTAL REALISED P&L', style: TextStyle(color: Color(0xFFB7C3D8), fontSize: 11, letterSpacing: 1.3)),
+                const SizedBox(height: 7),
+                Text(money.format(pnl), style: TextStyle(color: pnl >= 0 ? const Color(0xFF55D9B4) : const Color(0xFFFF8791), fontSize: 31, fontWeight: FontWeight.w800)),
+                const SizedBox(height: 15),
+                Row(children: [
+                  _heroStat('${trades.length}', 'TRADES'),
+                  const SizedBox(width: 25),
+                  _heroStat('${trades.isEmpty ? 0 : (wins / trades.length * 100).toStringAsFixed(0)}%', 'WIN RATE'),
+                  const Spacer(),
+                  const Icon(Icons.trending_up, color: teal, size: 30),
+                ]),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(children: [
+            Expanded(child: Metric('Open records', '$openTrades', 'Active positions', teal, Icons.track_changes)),
+            const SizedBox(width: 10),
+            Expanded(child: Metric('Winning trades', '$wins', 'Profitable closed trades', green, Icons.emoji_events)),
+            const SizedBox(width: 10),
+            Expanded(child: Metric('Option strikes', '${options.length}', 'Latest CSV import', Colors.deepPurple, Icons.table_chart)),
+          ]),
+        ),
+        const SizedBox(height: 20),
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 20),
+          child: Text('QUICK ACTIONS', style: TextStyle(fontWeight: FontWeight.w800, color: ink, letterSpacing: 1)),
+        ),
+        const SizedBox(height: 10),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(children: [
+            Expanded(child: _action('Import Option CSV', Icons.upload_file, onImport)),
+            const SizedBox(width: 10),
+            Expanded(child: _action('Analyze OI', Icons.query_stats, onAnalyze)),
+            const SizedBox(width: 10),
+            Expanded(child: _action('Add Trade', Icons.add_chart, onAdd)),
+          ]),
+        ),
+        const SizedBox(height: 17),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Surface(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(children: [
+                  const Icon(Icons.auto_graph, color: teal),
+                  const SizedBox(width: 8),
+                  const Expanded(child: Text('Latest market analysis', style: TextStyle(fontWeight: FontWeight.w800, color: ink))),
+                  TextButton(onPressed: onAnalyze, child: const Text('View all')),
+                ]),
+                Text(importedName, style: const TextStyle(fontSize: 11, color: muted)),
+                const SizedBox(height: 9),
+                if (options.isEmpty)
+                  const Text('Import an option-chain CSV to view CE / PE positioning signals.', style: TextStyle(color: muted, fontSize: 13))
+                else
+                  Text('$ceLongs CE fresh long signals • $peLongs PE fresh long signals', style: const TextStyle(color: ink, fontSize: 13)),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Surface(
+            child: Row(children: [
+              const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text('Trading journal', style: TextStyle(fontWeight: FontWeight.w800, color: ink)),
+                Text('Review and manage your latest trades', style: TextStyle(color: muted, fontSize: 11)),
+              ])),
+              TextButton(onPressed: onJournal, child: const Text('Open journal')),
+            ]),
+          ),
+        ),
+      ],
+    );
+  }
+}
 Widget _heroStat(String value,String label)=>Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text(value,style:const TextStyle(color:Colors.white,fontWeight:FontWeight.w800,fontSize:17)),Text(label,style:const TextStyle(color:Color(0xFFB7C3D8),fontSize:9,letterSpacing:1))]);
 Widget _action(String title,IconData icon,VoidCallback tap)=>InkWell(onTap:tap,borderRadius:BorderRadius.circular(17),child:Surface(padding:const EdgeInsets.symmetric(vertical:17,horizontal:7),child:Column(children:[Icon(icon,color:teal,size:25),const SizedBox(height:8),Text(title,textAlign:TextAlign.center,style:const TextStyle(color:ink,fontSize:11,fontWeight:FontWeight.w700))])));
 
@@ -102,11 +232,189 @@ Widget _signalLine(String a,String b,Color color)=>Padding(padding:const EdgeIns
 Widget _optionTile(OptionRow o){final ce=classify(o.ceChange,o.ceOiChange,call:true),pe=classify(o.peChange,o.peOiChange,call:false);return Padding(padding:const EdgeInsets.symmetric(vertical:9),child:Column(children:[Row(children:[Text(o.strike.toStringAsFixed(0),style:const TextStyle(fontWeight:FontWeight.w800,color:ink)),const Spacer(),Text('CE OI ${_fmt(o.ceOi)}',style:const TextStyle(color:muted,fontSize:10)),const SizedBox(width:12),Text('PE OI ${_fmt(o.peOi)}',style:const TextStyle(color:muted,fontSize:10))]),const SizedBox(height:5),Row(children:[Expanded(child:_miniSignal('CE',ce)),const SizedBox(width:7),Expanded(child:_miniSignal('PE',pe))]) ,const Divider(height:14)]));}
 Widget _miniSignal(String label,Signal s)=>Container(padding:const EdgeInsets.all(8),decoration:BoxDecoration(color:s.color.withOpacity(.08),borderRadius:BorderRadius.circular(10)),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text(label,style:TextStyle(color:s.color,fontSize:9,fontWeight:FontWeight.w900)),Text(s.title,style:TextStyle(color:s.color,fontSize:10,fontWeight:FontWeight.w700),maxLines:1,overflow:TextOverflow.ellipsis),Text('Δ ₹${s.bias}',style:const TextStyle(color:muted,fontSize:8),maxLines:1,overflow:TextOverflow.ellipsis)]));
 
-class JournalPage extends StatelessWidget {final List<Trade> trades;final String search;final ValueChanged<String> onSearch;final DateTimeRange? range;final ValueChanged<DateTimeRange?> onRange;final VoidCallback onAdd;final ValueChanged<Trade> onEdit;final ValueChanged<Trade> onDelete;const JournalPage({required this.trades,required this.search,required this.onSearch,required this.range,required this.onRange,required this.onAdd,required this.onEdit,required this.onDelete,super.key});@override Widget build(BuildContext c)=>Column(children:[PageHeader('Trading Journal','Track every entry, exit and decision',trailing:IconButton(onPressed:onAdd,icon:const Icon(Icons.add_circle,color:teal,size:30))),Padding(padding:const EdgeInsets.symmetric(horizontal:16),child:TextField(onChanged:onSearch,decoration:InputDecoration(hintText:'Search symbol, setup or notes...',prefixIcon:const Icon(Icons.search),filled:true,fillColor:Colors.white,border:OutlineInputBorder(borderRadius:BorderRadius.circular(14),borderSide:BorderSide.none)))),Padding(padding:const EdgeInsets.fromLTRB(16,9,16,12),child:Row(children:[Expanded(child:OutButton(icon:Icons.calendar_month,label:range==null?'All dates':'${DateFormat('dd MMM').format(range!.start)} – ${DateFormat('dd MMM').format(range!.end)}',onTap:()async{final r=await showDateRangePicker(context:c,firstDate:DateTime(2020),lastDate:DateTime.now().add(const Duration(days:365)),initialDateRange:range);onRange(r);})),if(range!=null)IconButton(onPressed:()=>onRange(null),icon:const Icon(Icons.close))])),Expanded(child:trades.isEmpty?const Center(child:Text('No trades yet. Add your first trade.',style:TextStyle(color:muted))):ListView.separated(padding:const EdgeInsets.fromLTRB(16,0,16,20),itemCount:trades.length,separatorBuilder:(_,__)=>const SizedBox(height:9),itemBuilder:(c,i){final t=trades[i];return InkWell(onTap:()=>onEdit(t),onLongPress:()=>_confirmDelete(c,t,onDelete),child:Surface(padding:const EdgeInsets.all(14),child:Row(children:[Container(width:40,height:40,decoration:BoxDecoration(color:(t.pnl>=0?green:red).withOpacity(.1),borderRadius:BorderRadius.circular(12)),child:Icon(t.side=='BUY'?Icons.north_east:Icons.south_west,color:t.side=='BUY'?green:red)),const SizedBox(width:12),Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text(t.symbol,style:const TextStyle(fontWeight:FontWeight.w800,color:ink)),Text('${t.side} • ${DateFormat('dd MMM yyyy').format(t.date)} • ${t.status}',style:const TextStyle(color:muted,fontSize:10)),Text('Entry ${t.entry}  →  Exit ${t.exit}',style:const TextStyle(color:muted,fontSize:10))])),Column(crossAxisAlignment:CrossAxisAlignment.end,children:[Text(money.format(t.pnl),style:TextStyle(color:t.pnl>=0?green:red,fontWeight:FontWeight.w800)),const Text('P&L',style:TextStyle(color:muted,fontSize:9))])])));} )]);}
+class JournalPage extends StatelessWidget {
+  final List<Trade> trades;
+  final String search;
+  final ValueChanged<String> onSearch;
+  final DateTimeRange? range;
+  final ValueChanged<DateTimeRange?> onRange;
+  final VoidCallback onAdd;
+  final ValueChanged<Trade> onEdit;
+  final ValueChanged<Trade> onDelete;
+
+  const JournalPage({
+    required this.trades,
+    required this.search,
+    required this.onSearch,
+    required this.range,
+    required this.onRange,
+    required this.onAdd,
+    required this.onEdit,
+    required this.onDelete,
+    super.key,
+  });
+
+  @override
+  Widget build(BuildContext c) {
+    final dateLabel = range == null
+        ? 'All dates'
+        : '${DateFormat('dd MMM').format(range!.start)} – ${DateFormat('dd MMM').format(range!.end)}';
+    return Column(children: [
+      PageHeader('Trading Journal', 'Track every entry, exit and decision', trailing: IconButton(onPressed: onAdd, icon: const Icon(Icons.add_circle, color: teal, size: 30))),
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: TextField(
+          onChanged: onSearch,
+          decoration: InputDecoration(
+            hintText: 'Search symbol, setup or notes...',
+            prefixIcon: const Icon(Icons.search),
+            filled: true,
+            fillColor: Colors.white,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+          ),
+        ),
+      ),
+      Padding(
+        padding: const EdgeInsets.fromLTRB(16, 9, 16, 12),
+        child: Row(children: [
+          Expanded(child: OutButton(
+            icon: Icons.calendar_month,
+            label: dateLabel,
+            onTap: () async {
+              final selected = await showDateRangePicker(
+                context: c,
+                firstDate: DateTime(2020),
+                lastDate: DateTime.now().add(const Duration(days: 365)),
+                initialDateRange: range,
+              );
+              onRange(selected);
+            },
+          )),
+          if (range != null) IconButton(onPressed: () => onRange(null), icon: const Icon(Icons.close)),
+        ]),
+      ),
+      Expanded(
+        child: trades.isEmpty
+            ? const Center(child: Text('No trades yet. Add your first trade.', style: TextStyle(color: muted)))
+            : ListView.separated(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+                itemCount: trades.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 9),
+                itemBuilder: (context, i) {
+                  final t = trades[i];
+                  return InkWell(
+                    onTap: () => onEdit(t),
+                    onLongPress: () => _confirmDelete(context, t, onDelete),
+                    child: Surface(
+                      padding: const EdgeInsets.all(14),
+                      child: Row(children: [
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(color: (t.pnl >= 0 ? green : red).withOpacity(.1), borderRadius: BorderRadius.circular(12)),
+                          child: Icon(t.side == 'BUY' ? Icons.north_east : Icons.south_west, color: t.side == 'BUY' ? green : red),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          Text(t.symbol, style: const TextStyle(fontWeight: FontWeight.w800, color: ink)),
+                          Text('${t.side} • ${DateFormat('dd MMM yyyy').format(t.date)} • ${t.status}', style: const TextStyle(color: muted, fontSize: 10)),
+                          Text('Entry ${t.entry}  →  Exit ${t.exit}', style: const TextStyle(color: muted, fontSize: 10)),
+                        ])),
+                        Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                          Text(money.format(t.pnl), style: TextStyle(color: t.pnl >= 0 ? green : red, fontWeight: FontWeight.w800)),
+                          const Text('P&L', style: TextStyle(color: muted, fontSize: 9)),
+                        ]),
+                      ]),
+                    ),
+                  );
+                },
+              ),
+      ),
+    ]);
+  }
+}
 Future<void> _confirmDelete(BuildContext c,Trade t,ValueChanged<Trade> cb)async{final yes=await showDialog<bool>(context:c,builder:(c)=>AlertDialog(title:const Text('Delete trade?'),content:Text('Remove ${t.symbol} from your journal?'),actions:[TextButton(onPressed:()=>Navigator.pop(c,false),child:const Text('Cancel')),TextButton(onPressed:()=>Navigator.pop(c,true),child:const Text('Delete'))]));if(yes==true)cb(t);}
 class OutButton extends StatelessWidget {final IconData icon;final String label;final VoidCallback onTap;const OutButton({required this.icon,required this.label,required this.onTap});@override Widget build(BuildContext c)=>OutlinedButton.icon(onPressed:onTap,icon:Icon(icon,size:17),label:Text(label),style:OutlinedButton.styleFrom(foregroundColor:ink,backgroundColor:Colors.white,side:BorderSide.none,alignment:Alignment.centerLeft));}
 
-class ReportsPage extends StatelessWidget {final List<Trade> trades;final double pnl;final VoidCallback onCsv,onPdf,onTip;const ReportsPage({required this.trades,required this.pnl,required this.onCsv,required this.onPdf,required this.onTip,super.key});@override Widget build(BuildContext c){final profit=trades.where((t)=>t.pnl>0).fold(0.0,(s,t)=>s+t.pnl),loss=trades.where((t)=>t.pnl<0).fold(0.0,(s,t)=>s+t.pnl);return ListView(padding:const EdgeInsets.only(bottom:25),children:[PageHeader('Reports & Sharing','Performance summary and trade communication'),Padding(padding:const EdgeInsets.symmetric(horizontal:16),child:Surface(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[const Text('PERFORMANCE SUMMARY',style:TextStyle(fontWeight:FontWeight.w800,color:ink)),const SizedBox(height:15),_reportRow('Total trades','${trades.length}'),_reportRow('Gross winning P&L',money.format(profit),green),_reportRow('Gross losing P&L',money.format(loss),red),_reportRow('Net realised P&L',money.format(pnl),pnl>=0?green:red),_reportRow('Average P&L',money.format(trades.isEmpty?0:pnl/trades.length)),_reportRow('Win rate','${trades.isEmpty?0:(trades.where((t)=>t.pnl>0).length/trades.length*100).toStringAsFixed(1)}%')])),const SizedBox(height:15),Padding(padding:const EdgeInsets.symmetric(horizontal:16),child:Surface(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[const Text('EXPORT REPORTS',style:TextStyle(fontWeight:FontWeight.w800,color:ink)),const SizedBox(height:10),_reportAction(c,Icons.table_chart,'Export CSV','Share or save your trade data',onCsv),const Divider(),_reportAction(c,Icons.picture_as_pdf,'Export PDF','Generate a printable PDF report',onPdf)])),),const SizedBox(height:15),Padding(padding:const EdgeInsets.symmetric(horizontal:16),child:Container(padding:const EdgeInsets.all(19),decoration:BoxDecoration(gradient:const LinearGradient(colors:[Color(0xFF172440),Color(0xFF344B70)]),borderRadius:BorderRadius.circular(20)),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[const Icon(Icons.send_rounded,color:teal,size:27),const SizedBox(height:9),const Text('Share a trading setup',style:TextStyle(color:Colors.white,fontWeight:FontWeight.w800,fontSize:18)),const SizedBox(height:4),const Text('Prepare a clear Buy / Sell tip with entry, stop-loss and targets.',style:TextStyle(color:Color(0xFFB7C3D8),fontSize:12)),const SizedBox(height:14),FilledButton.icon(onPressed:onTip,icon:const Icon(Icons.chat),label:const Text('Create WhatsApp tip'),style:FilledButton.styleFrom(backgroundColor:teal,foregroundColor:navy))]))),const Padding(padding:EdgeInsets.all(18),child:Text('Reports are calculated from the trades saved on this device. CSV and PDF exports are generated locally.',style:TextStyle(color:muted,fontSize:11))) ]);}}
+class ReportsPage extends StatelessWidget {
+  final List<Trade> trades;
+  final double pnl;
+  final VoidCallback onCsv, onPdf, onTip;
+
+  const ReportsPage({required this.trades, required this.pnl, required this.onCsv, required this.onPdf, required this.onTip, super.key});
+
+  @override
+  Widget build(BuildContext c) {
+    final profit = trades.where((t) => t.pnl > 0).fold<double>(0, (s, t) => s + t.pnl);
+    final loss = trades.where((t) => t.pnl < 0).fold<double>(0, (s, t) => s + t.pnl);
+    final wins = trades.where((t) => t.pnl > 0).length;
+    final winRate = trades.isEmpty ? '0.0' : (wins / trades.length * 100).toStringAsFixed(1);
+
+    return ListView(
+      padding: const EdgeInsets.only(bottom: 25),
+      children: [
+        PageHeader('Reports & Sharing', 'Performance summary and trade communication'),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Surface(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const Text('PERFORMANCE SUMMARY', style: TextStyle(fontWeight: FontWeight.w800, color: ink)),
+              const SizedBox(height: 15),
+              _reportRow('Total trades', '${trades.length}'),
+              _reportRow('Gross winning P&L', money.format(profit), green),
+              _reportRow('Gross losing P&L', money.format(loss), red),
+              _reportRow('Net realised P&L', money.format(pnl), pnl >= 0 ? green : red),
+              _reportRow('Average P&L', money.format(trades.isEmpty ? 0 : pnl / trades.length)),
+              _reportRow('Win rate', '$winRate%'),
+            ]),
+          ),
+        ),
+        const SizedBox(height: 15),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Surface(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const Text('EXPORT REPORTS', style: TextStyle(fontWeight: FontWeight.w800, color: ink)),
+              const SizedBox(height: 10),
+              _reportAction(c, Icons.table_chart, 'Export CSV', 'Share or save your trade data', onCsv),
+              const Divider(),
+              _reportAction(c, Icons.picture_as_pdf, 'Export PDF', 'Generate a printable PDF report', onPdf),
+            ]),
+          ),
+        ),
+        const SizedBox(height: 15),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Container(
+            padding: const EdgeInsets.all(19),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(colors: [Color(0xFF172440), Color(0xFF344B70)]),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const Icon(Icons.send_rounded, color: teal, size: 27),
+              const SizedBox(height: 9),
+              const Text('Share a trading setup', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 18)),
+              const SizedBox(height: 4),
+              const Text('Prepare a clear Buy / Sell tip with entry, stop-loss and targets.', style: TextStyle(color: Color(0xFFB7C3D8), fontSize: 12)),
+              const SizedBox(height: 14),
+              FilledButton.icon(
+                onPressed: onTip,
+                icon: const Icon(Icons.chat),
+                label: const Text('Create WhatsApp tip'),
+                style: FilledButton.styleFrom(backgroundColor: teal, foregroundColor: navy),
+              ),
+            ]),
+          ),
+        ),
+        const Padding(
+          padding: EdgeInsets.all(18),
+          child: Text('Reports are calculated from the trades saved on this device. CSV and PDF exports are generated locally.', style: TextStyle(color: muted, fontSize: 11)),
+        ),
+      ],
+    );
+  }
+}
 Widget _reportRow(String a,String b,[Color color=ink])=>Padding(padding:const EdgeInsets.symmetric(vertical:7),child:Row(children:[Expanded(child:Text(a,style:const TextStyle(color:muted,fontSize:12))),Text(b,style:TextStyle(color:color,fontWeight:FontWeight.w800,fontSize:13))]));
 Widget _reportAction(BuildContext c,IconData i,String t,String d,VoidCallback f)=>ListTile(contentPadding:EdgeInsets.zero,leading:CircleAvatar(backgroundColor:teal.withOpacity(.1),child:Icon(i,color:teal)),title:Text(t,style:const TextStyle(fontWeight:FontWeight.w700,color:ink)),subtitle:Text(d,style:const TextStyle(fontSize:11,color:muted)),trailing:const Icon(Icons.chevron_right),onTap:f);
 
@@ -114,7 +422,6 @@ class TradeEditor extends StatefulWidget {final Trade? existing;const TradeEdito
 class _TradeEditorState extends State<TradeEditor>{final form=GlobalKey<FormState>();late final symbol=TextEditingController(text:widget.existing?.symbol??'NIFTY');late final entry=TextEditingController(text:widget.existing?.entry.toString()??'');late final exit=TextEditingController(text:widget.existing?.exit.toString()??'');late final qty=TextEditingController(text:widget.existing?.qty.toString()??'1');late final stop=TextEditingController(text:widget.existing?.stop.toString()??'');late final target=TextEditingController(text:widget.existing?.target.toString()??'');late final charges=TextEditingController(text:widget.existing?.charges.toString()??'0');late final notes=TextEditingController(text:widget.existing?.notes??'');late String side=widget.existing?.side??'BUY',status=widget.existing?.status??'Closed',setup=widget.existing?.setup??'Intraday';late DateTime date=widget.existing?.date??DateTime.now();@override Widget build(BuildContext c)=>Padding(padding:EdgeInsets.only(bottom:MediaQuery.of(c).viewInsets.bottom),child:Container(height:MediaQuery.of(c).size.height*.88,padding:const EdgeInsets.all(20),decoration:const BoxDecoration(color:Color(0xFFF4F6FA),borderRadius:BorderRadius.vertical(top:Radius.circular(25))),child:Form(key:form,child:ListView(children:[Row(children:[Expanded(child:Text(widget.existing==null?'Add trade':'Edit trade',style:const TextStyle(fontSize:22,fontWeight:FontWeight.w800,color:ink))),IconButton(onPressed:()=>Navigator.pop(c),icon:const Icon(Icons.close))]),_field('Symbol / Instrument',symbol),Row(children:[Expanded(child:_drop('Side',side,['BUY','SELL'],(v)=>setState(()=>side=v))),const SizedBox(width:10),Expanded(child:_drop('Status',status,['Open','Closed'],(v)=>setState(()=>status=v)))]),_drop('Setup',setup,['Intraday','Swing','Positional','Options','Futures','Investment'],(v)=>setState(()=>setup=v)),Row(children:[Expanded(child:_field('Entry price',entry,num:true)),const SizedBox(width:10),Expanded(child:_field('Exit price',exit,num:true))]),Row(children:[Expanded(child:_field('Quantity',qty,num:true)),const SizedBox(width:10),Expanded(child:_field('Charges',charges,num:true))]),Row(children:[Expanded(child:_field('Stop-loss',stop,num:true)),const SizedBox(width:10),Expanded(child:_field('Take profit',target,num:true))]),ListTile(contentPadding:EdgeInsets.zero,title:Text('Trade date: ${DateFormat('dd MMM yyyy').format(date)}'),trailing:const Icon(Icons.calendar_month),onTap:()async{final d=await showDatePicker(context:c,firstDate:DateTime(2020),lastDate:DateTime.now().add(const Duration(days:365)),initialDate:date);if(d!=null)setState(()=>date=d);}),_field('Notes / Strategy',notes),const SizedBox(height:10),FilledButton(onPressed:(){if(!form.currentState!.validate())return;Navigator.pop(c,Trade(symbol:symbol.text.trim().toUpperCase(),side:side,setup:setup,status:status,notes:notes.text,entry:numVal(entry.text),exit:numVal(exit.text),qty:numVal(qty.text),stop:numVal(stop.text),target:numVal(target.text),charges:numVal(charges.text),date:date));},style:FilledButton.styleFrom(backgroundColor:navy,padding:const EdgeInsets.all(16)),child:const Text('Save trade'))]))));}
 Widget _field(String label,TextEditingController ctrl,{bool num=false})=>Padding(padding:const EdgeInsets.only(bottom:10),child:TextFormField(controller:ctrl,keyboardType:num?const TextInputType.numberWithOptions(decimal:true):TextInputType.text,validator:(v)=>v==null||v.trim().isEmpty?'Required':null,decoration:InputDecoration(labelText:label,filled:true,fillColor:Colors.white,border:OutlineInputBorder(borderRadius:BorderRadius.circular(12),borderSide:BorderSide.none))));
 Widget _drop(String label,String value,List<String> values,ValueChanged<String> change)=>Padding(padding:const EdgeInsets.only(bottom:10),child:DropdownButtonFormField<String>(value:value,decoration:InputDecoration(labelText:label,filled:true,fillColor:Colors.white,border:OutlineInputBorder(borderRadius:BorderRadius.circular(12),borderSide:BorderSide.none)),items:values.map((v)=>DropdownMenuItem(value:v,child:Text(v))).toList(),onChanged:(v){if(v!=null)change(v);}));
-}
 
 class TipEditor extends StatefulWidget {const TipEditor();@override State<TipEditor> createState()=>_TipEditorState();}
 class _TipEditorState extends State<TipEditor>{final symbol=TextEditingController(text:'NIFTY');final entry=TextEditingController();final sl=TextEditingController();final t1=TextEditingController();final t2=TextEditingController();final reason=TextEditingController(text:'OI positioning and price action confirmation');String side='BUY',kind='Options';@override Widget build(BuildContext c)=>Padding(padding:EdgeInsets.only(bottom:MediaQuery.of(c).viewInsets.bottom),child:Container(height:MediaQuery.of(c).size.height*.85,padding:const EdgeInsets.all(20),decoration:const BoxDecoration(color:Colors.white,borderRadius:BorderRadius.vertical(top:Radius.circular(24))),child:ListView(children:[const Text('WhatsApp tip builder',style:TextStyle(fontSize:21,fontWeight:FontWeight.w800,color:ink)),const SizedBox(height:12),_field('Instrument',symbol),_drop('Trade type',kind,['Equity','Options','Futures'],(v)=>setState(()=>kind=v)),_drop('Action',side,['BUY','SELL'],(v)=>setState(()=>side=v)),_field('Entry price',entry,num:true),_field('Stop-loss',sl,num:true),_field('Target 1',t1,num:true),_field('Target 2 (optional)',t2,num:true),_field('Analysis / reason',reason),const SizedBox(height:10),FilledButton.icon(onPressed:(){if(entry.text.isEmpty||sl.text.isEmpty||t1.text.isEmpty){ScaffoldMessenger.of(c).showSnackBar(const SnackBar(content:Text('Enter entry, stop-loss and target 1')));return;}final msg='📊 *TRADEPULSE TRADE SETUP*\n\nInstrument: *${symbol.text.toUpperCase()}*\nSegment: $kind\nAction: *$side*\nEntry: ${entry.text}\nStop-loss: ${sl.text}\nTarget 1: ${t1.text}${t2.text.isEmpty?'':'\nTarget 2: ${t2.text}'}\n\nAnalysis: ${reason.text}\n\n⚠️ Educational market idea, not a guaranteed return. Follow your own risk management.';Navigator.pop(c,msg);},icon:const Icon(Icons.share),label:const Text('Prepare WhatsApp message'),style:FilledButton.styleFrom(backgroundColor:teal,foregroundColor:navy,padding:const EdgeInsets.all(15)))])));
