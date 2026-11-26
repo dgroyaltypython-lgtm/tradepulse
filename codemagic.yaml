@@ -16,6 +16,3 @@ workflows:
     artifacts:
       - build/app/outputs/flutter-apk/app-release.apk
       - build/**/outputs/**/mapping.txt
-    publishing:
-      email:
-        recipients: []
